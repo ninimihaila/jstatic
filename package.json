@@ -1,0 +1,12 @@
+{
+  "name": "jstatic",
+  "version": "0.1",
+  "description": "A js library for creating truly static sites",
+  "main": "html",
+  "author": "Nini Mihaila",
+  "license": "MIT",
+  "devDependencies": {
+    "jester": "^0.2.3",
+    "live-server": "^1.2.0"
+  }
+}
