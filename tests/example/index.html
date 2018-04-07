@@ -6,70 +6,64 @@
   <!-- <link rel="stylesheet" href="theme.css"> -->
   <link href="style.css">
   <style type="text/css">
-      /* on mobile, so the buttons are
-        hidden but you can still click them */
-      @media (max-width: 700px) {
-          .nav-button {
-              opacity: 0.0;
-          }
-      }
-
-      body {
-          font-family: Georgia;
-          line-height: 150%;
-      }
-
-      /*.center {
-          position: absolute;
-          left: 50%;
-          transform: translate(-50%, 0%);
-      }*/
-
-      #main {
-          margin-left: auto;
-          margin-right: auto;
-          width: 500px;
-      }
-
+    /* on mobile, so the buttons are
+      hidden but you can still click them */
+    @media (max-width: 700px) {
       .nav-button {
-          position: fixed;
-          top: 0;
-          height:100%;
-          background: inherit;
-          border: none;
-          font-size:100px;
+        opacity: 0.0;
       }
+    }
 
-      #prev {
-          left: 10px;
-      }
+    body {
+      font-family: Georgia;
+      line-height: 150%;
+    }
 
-      #prev:after {
-          content: "<";
-      }
+    #main {
+      margin-left: auto;
+      margin-right: auto;
+      width: 500px;
+    }
 
-      #next {
-          right: 10px;
-      }
+    .nav-button {
+      position: fixed;
+      top: 0;
+      height:100%;
+      background: inherit;
+      border: none;
+      font-size:100px;
+    }
 
-      #next:after {
-          content: ">";
-      }
+    #prev {
+      left: 10px;
+    }
 
-      #search {
-          margin-bottom: 30px;
-          margin-top: 5px;
-          margin-left: auto;
-          margin-right: auto;
-          width:200px;
-      }
+    #prev:after {
+      content: "<";
+    }
 
-      #page {
-          max-width: 40px;
-          border: 0;
-          padding-left: 10px;
-          font-family: Georgia;
-      }
+    #next {
+      right: 10px;
+    }
+
+    #next:after {
+      content: ">";
+    }
+
+    #search {
+      margin-bottom: 30px;
+      margin-top: 5px;
+      margin-left: auto;
+      margin-right: auto;
+      width:200px;
+    }
+
+    #page {
+      max-width: 40px;
+      border: 0;
+      padding-left: 10px;
+      font-family: Georgia;
+    }
   </style>
   <title></title>
 </head>
@@ -80,234 +74,198 @@
   </div>
   <div id="main">
     <h1 id="title" class="title"></h1>
+    <p id="body"></p>
   </div>
   <button id="prev" class="nav-button" onclick="loadPrev()"></button>
   <button id="next" class="nav-button" onclick="loadNext()"></button>
 
-      <script type="text/javascript">
-      const configFile = "config.txt";
-      // const template = "template.html";
-      const fileListFile = "files.txt";
-      let config = {};
-      let fileList = [];
-      let currentFile = "";
-      let sections = {};
+  <script type="text/javascript">
+    const configFile = "config.txt";
+    const fileListFile = "files.txt";
+    let config = {};
+    let fileList = [];
+    let currentFile = "";
+    let rootId = "";
 
-      function getDir() {
-          return config.dir + '/';
-      }
+    let sections = {};
 
-      /**
-      A function for parsing simple, basic YAML
-      */
-      function parseYaml(contents) {
-        let lines = contents.split('\n');
-        let json = {};
-        for (var i in lines) {
-            const currentLine = lines[i];
-            const nextLine = lines[i+1];
-            var key = lines[i].split(':')[0].trim();
-            var value = lines[i].split(':')[1].trim();
-            json[key] = value;
-        }
-        return json;
-      }
-
-      function flatten(json) {
-        function _flatten(json, flattened, str_key) {
-          for (var key in json) {
-            if (json.hasOwnProperty(key)) {
-              if (json[key] instanceof Object && json[key] != "") {
-                _flatten(
-                  json[key],
-                  flattened,
-                  str_key + (str_key ? "/" : "")  + key);
-              } else {
-                flattened.push(str_key + "/" + json[key]);
-              }
+    function flatten(json) {
+      function _flatten(json, flattened, str_key) {
+        for (const key in json) {
+          if (json.hasOwnProperty(key)) {
+            if (json[key] instanceof Object && json[key] != "") {
+              _flatten(
+                json[key],
+                flattened,
+                str_key + (str_key ? "/" : "")  + key);
+            } else {
+              flattened.push(str_key + "/" + json[key]);
             }
           }
         }
-        let flat=[]
-        _flatten(json, flat, "");
-        return flat
+      }
+      let flat = [];
+      _flatten(json, flat, "");
+      return flat;
+    }
+
+    function tryParseInt(int) {
+      const res = parseInt(int);
+      return isNaN(res) ? 0 : res;
+    }
+
+    function setText(id, content) {
+      document.getElementById(id).textContent = content;
+    }
+
+    function scrollToTop() {
+      window.scrollTo(0, 0);
+    }
+
+    // function getPageFromUrl() {
+    //     var urlPage = location.hash;
+    //     return tryParseInt(urlPage.split('#')[1]);
+    // }
+
+    /**
+     Assumes the document contains a title separated by a blank line
+     from the rest of the body
+    */
+    function titleAndBody(text) {
+      let lines = text.split('\n');
+
+      setText("title", lines[0]);
+
+      const body = document.querySelector("#body");
+      while (body.hasChildNodes()) {
+        body.removeChild(body.lastChild);
       }
 
-      function fileLoad(path) {
-          return new Promise(function(resolve, reject) {
-            // Standard XHR to load an image
-            var request = new XMLHttpRequest();
-            request.open("GET", path);
-            // When the request loads, check whether it was successful
-            request.onload = function() {
-              if (request.status === 200) {
-                // If successful, resolve the promise by passing back the request response
-                resolve(request.response);
-              } else {
-                // If it fails, reject the promise with a error message
-                reject(Error('File does not exist' + request.statusText));
-              }
-            };
-            request.onerror = function() {
-                // Also deal with the case when the entire request fails to begin with
-                // This is probably a network error
-                reject(Error('There was a network error.'));
-            };
-            // Send the request
-            request.send();
-          });
-      }
+      lines.slice(2).forEach(line => {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = line;
+        body.appendChild(paragraph);
+      });
+    }
 
-      function tryParseInt(int) {
-          var res = parseInt(int);
-          return isNaN(res) ? 0 : res;
-      }
-
-      function setText(id, content) {
-          document.getElementById(id).textContent = content;
-      }
-
-      function scrollToTop() {
-          window.scrollTo(0, 0);
-      }
-
-      // function getPageFromUrl() {
-      //     var urlPage = location.hash;
-      //     return tryParseInt(urlPage.split('#')[1]);
-      // }
-      function parseSections(lines) {
-        // for now, let's assume some of these fuckers
-        setText("title", lines)
-      }
+    function parseSections(lines, parseFn=titleAndBody) {
+      titleAndBody(lines);
+    }
 
 
-      function loadFile(file, callback) {
-        console.log(`trying to load ${file}`)
-        fileLoad(file).then(function(response) {
-          if (callback) {
-            callback(file);
-          }
+    function loadFile(file, callback) {
+      console.log(`trying to load ${file}`)  // TODO: delete this
+      fetch(file).then(response => {
+        if (callback) {
+          callback(file);
+        }
 
-          let lines = response.split('\n');
-          parseSections(lines);
+        response.text().then(text => {
+          parseSections(text);
           scrollToTop();
-        }, function(Error) {
-            console.log(Error);
-        }).catch(function(err){
-            console.log(err);
         });
+      }, function(err) {
+        console.log(err);
+      }).catch(function(err){
+        console.log(err);
+      });
+    }
+
+    function nextFile() {
+      return fileList[
+        fileList.indexOf(currentFile) + 1
+      ];
+    }
+
+    function prevFile() {
+      return fileList[
+        fileList.indexOf(currentFile) - 1
+      ];
+    }
+
+    function onFileLoaded(file) {
+      currentFile = file;
+    }
+
+    function loadNext(getNext=nextFile, callback=onFileLoaded) {
+      const next = getNext();
+      if (next) {
+        loadFile(next, callback);
       }
+    }
 
-      function nextFile() {
-        return fileList[
-          fileList.indexOf(currentFile) + 1
-        ];
+    function loadPrev(getPrev=prevFile, callback=onFileLoaded) {
+      const prev = getPrev();
+      if (prev) {
+        loadFile(prev, callback);
       }
+    }
 
-      function prevFile() {
-        return fileList[
-          fileList.indexOf(currentFile) - 1
-        ];
+    // Bootstrap section
+    function getIdsTree(element) {
+      let ids = [];
+      if (!!element.id) {
+        ids.push(element.id)
       }
-
-      function onFileLoaded(file) {
-        currentFile = file;
+      for (let i in element.children) {
+        const childIds = getIdsTree(element.children[i]);
+        ids.push(...childIds);
       }
+      return ids
+    }
 
-      function loadNext(getNext=nextFile, callback=onFileLoaded) {
-        const next = getNext();
-        if (next) {
-          loadFile(next, callback);
-        }
+    /// Given a list of html elements, get the id of the elements and all their children
+    function getIds(elements) {
+      let ids = [];
+      for (let i in elements) {
+        const elIds = getIdsTree(elements[i]);
+        ids.push(...elIds);
       }
+      return ids;
+    }
 
-      function loadPrev(getPrev=prevFile, callback=onFileLoaded) {
-        const prev = getPrev();
-        if (prev) {
-          loadFile(prev, callback);
-        }
-      }
+    function loadConfig() {
+      return new Promise(function(resolve, reject){
+        fetch(configFile).then(response => {
+          response.json().then(res => {
+            config = res;
+            resolve({config: config});
+          });
+        });
+      })
+    }
 
-      // Bootstrap section
-      function getIdsTree(element) {
-          var ids = [];
-          if (!!element.id) {
-              ids.push(element.id)
-          }
-          for (var i = 0; i<element.children.length; i++) {
-              var childIds = getIdsTree(element.children[i]);
-              for (var j=0; j<childIds.length; j++) {
-                  ids.push(childIds[j]);
-              }
-          }
-          return ids
-      }
-
-      /// Given a list of html elements, get the id of the elements and all their children
-      function getIds(elements) {
-          var ids = [];
-          for (var i = 0; i<elements.length; i++) {
-              var elIds = getIdsTree(elements[i]);
-              for (var j=0; j<elIds.length; j++) {
-                  ids.push(elIds[j]);
-              }
-          }
-          return ids;
-      }
-
-      function loadConfig() {
-          return new Promise(function(resolve, reject){
-              fileLoad(configFile).then(function(response){
-                  config = JSON.parse(response);
-                  resolve({config: config});
-              });
-          })
-      }
-
-      // function loadTemplate() {
-      //     return new Promise(function(resolve, reject){
-      //         fileLoad(template).then(function(response){
-      //             var div = document.createElement("div");
-      //             div.id = "template";
-      //             div.innerHTML = response;
-      //             sections = getIds(div.children);
-      //             document.getElementById("main").appendChild(div);
-      //             resolve({template: response});
-      //         });
-      //     })
-      // }
-
-      function loadFileList() {
-        return new Promise(function(resolve, reject){
-          fileLoad(fileListFile).then(function(response){
-            let list = JSON.parse(response);
-            fileList = flatten(list);
-            console.log(fileList);
+    function loadFileList() {
+      return new Promise(function(resolve, reject){
+        fetch(fileListFile).then(response => {
+          response.json().then(res => {
+            fileList = flatten(res);
             resolve({files: fileList});
           });
-        })
-      }
+        });
+      })
+    }
 
-      function loadFirstFile() {
-          return new Promise(function(resolve, reject){
-              loadNext(nextFile);
-              resolve();
-          })
-      }
+    function loadFirstFile() {
+      return new Promise(function(resolve, reject){
+        loadNext(nextFile);
+        resolve();
+      })
+    }
 
-      function bootstrap() {
-          loadConfig()
-          // .then(loadTemplate)
-          .then(loadFileList)
-          .then(loadFirstFile);
-      }
+    function bootstrap() {
+      loadConfig()
+      .then(loadFileList)
+      .then(loadFirstFile);
+    }
 
-      bootstrap();
+    bootstrap();
   </script>
   <script>
     // Page-based
+    /// this assumes a file ordering scheme with files named 1 to n
 
-    var page = 1;
+    let page = 1;
 
     function pageToFile(page) {
       return `${config.dir}/${page}.txt`;
