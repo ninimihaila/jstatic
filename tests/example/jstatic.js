@@ -73,15 +73,14 @@ function parseSections(lines, parseFn=titleAndBody) {
 
 function loadFile(file, callback) {
   console.log(`trying to load ${file}`)  // TODO: delete this
-  fetch(file).then(response => {
+  fetch(file)
+  .then(response => response.text())
+  .then(text => {
     if (callback) {
       callback(file);
     }
-
-    response.text().then(text => {
-      parseSections(text);
-      scrollToTop();
-    });
+    parseSections(text);
+    scrollToTop();
   }, function(err) {
     console.log(err);
   }).catch(function(err){
@@ -144,22 +143,22 @@ function getIds(elements) {
 
 function loadConfig() {
   return new Promise(function(resolve, reject){
-    fetch(configFile).then(response => {
-      response.json().then(res => {
+    fetch(configFile)
+    .then(response => response.json())
+    .then(res => {
         config = res;
         resolve({config: config});
-      });
     });
   })
 }
 
 function loadFileList() {
   return new Promise(function(resolve, reject){
-    fetch(fileListFile).then(response => {
-      response.json().then(res => {
+    fetch(fileListFile)
+    .then(response => response.json())
+    .then(res => {
         fileList = flatten(res);
         resolve({files: fileList});
-      });
     });
   })
 }
