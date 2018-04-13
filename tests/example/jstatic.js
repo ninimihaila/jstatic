@@ -66,24 +66,29 @@ function titleAndBody(text) {
   });
 }
 
-function parseSections(lines, parseFn=titleAndBody) {
+function parseSections(lines, parseFn) {
   titleAndBody(lines);
 }
 
 
-function loadFile(file, callback) {
+function loadFile(file, callback, parseFn=titleAndBody) {
   console.log(`trying to load ${file}`)  // TODO: delete this
   fetch(file)
+  .then(response => {
+    if (!response.ok) {
+      throw Error(response.statusText);
+    }
+    return response;
+  })
   .then(response => response.text())
   .then(text => {
     if (callback) {
       callback(file);
     }
-    parseSections(text);
+    parseSections(text, parseFn);
     scrollToTop();
-  }, function(err) {
-    console.log(err);
-  }).catch(function(err){
+  })
+  .catch(function(err){
     console.log(err);
   });
 }
