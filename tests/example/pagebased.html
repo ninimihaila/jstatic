@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8" />
   <title>JStatic Starter</title>
-  <!-- <link rel="stylesheet" href="theme.css"> -->
   <link href="style.css">
   <style type="text/css">
     /* on mobile, so the buttons are
@@ -69,15 +68,15 @@
 </head>
 <body>
   <div id="search">
-      Page:<input id="page" type="number">
+      Page:<input id="page" type="number" value="1" />
       <button onclick="loadPage()">Go</button>
   </div>
   <div id="main">
     <h1 id="title" class="title"></h1>
     <p id="body"></p>
   </div>
-  <button id="prev" class="nav-button" onclick="loadPrev(prevPage, onPageLoaded)"></button>
-  <button id="next" class="nav-button" onclick="loadNext(nextPage, onPageLoaded)"></button>
+  <button id="prev" class="nav-button" onclick="loadPrevPage()"></button>
+  <button id="next" class="nav-button" onclick="loadNextPage()"></button>
 
   <script type="text/javascript" src="jstatic.js"></script>
   <script>
@@ -107,10 +106,17 @@
     }
 
     function onPageLoaded(file) {
-      page = tryParseInt(file.split('/')[1].split('.')[0]);
-      setPage(page);
+      currentPage = tryParseInt(file.split('/')[1].split('.')[0]);
+      setPage(currentPage);
+    }
+
+    function loadPrevPage() {
+      loadPrev(prevPage, onPageLoaded);
+    }
+
+    function loadNextPage() {
+      loadNext(nextPage, onPageLoaded);
     }
   </script>
-  <!-- <script type="text/javascript" src="index.js"></script> -->
 </body>
 </html>
