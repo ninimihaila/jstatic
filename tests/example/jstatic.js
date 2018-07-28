@@ -27,6 +27,10 @@ function flatten(json) {
   return flat;
 }
 
+function caca() {
+  return "pipi"
+}
+
 function tryParseInt(int) {
   const res = parseInt(int);
   return isNaN(res) ? 0 : res;
